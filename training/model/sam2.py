@@ -32,6 +32,9 @@ class SAM2Train(SAM2Base):
         prob_to_use_pt_input_for_eval=0.0,
         prob_to_use_box_input_for_train=0.0,
         prob_to_use_box_input_for_eval=0.0,
+        # Box noise/jitter parameters to prevent prompt overfitting
+        box_noise=0.1,  # Noise as a fraction of box width/height (default: 0.1 = 10% jitter)
+        box_noise_bound=20,  # Maximum noise in pixels (default: 20)
         # if it is greater than 1, we interactive point sampling in the 1st frame and other randomly selected frames
         num_frames_to_correct_for_train=1,  # default: only iteratively sample on first frame
         num_frames_to_correct_for_eval=1,  # default: only iteratively sample on first frame
@@ -77,6 +80,9 @@ class SAM2Train(SAM2Base):
         self.prob_to_use_box_input_for_train = prob_to_use_box_input_for_train
         self.prob_to_use_pt_input_for_eval = prob_to_use_pt_input_for_eval
         self.prob_to_use_box_input_for_eval = prob_to_use_box_input_for_eval
+        # Box noise parameters
+        self.box_noise = box_noise
+        self.box_noise_bound = box_noise_bound
         if prob_to_use_pt_input_for_train > 0 or prob_to_use_pt_input_for_eval > 0:
             logging.info(
                 f"Training with points (sampled from masks) as inputs with p={prob_to_use_pt_input_for_train}"
@@ -230,6 +236,8 @@ class SAM2Train(SAM2Base):
                 if use_box_input:
                     points, labels = sample_box_points(
                         gt_masks_per_frame[t],
+                        noise=self.box_noise,
+                        noise_bound=self.box_noise_bound,
                     )
                 else:
                     # (here we only sample **one initial point** on initial conditioning frames from the
